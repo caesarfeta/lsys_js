@@ -2,6 +2,28 @@
  * @author AdamTavares / http://adamtavares.com
 */
 var LSYS = LSYS || { REVISION: '1' }
+
+
+/**
+ * Build a full screen canvas
+*/
+AutoCanvas = function( _id ) {
+	this.canvas = document.createElement("canvas");
+	document.body.appendChild( this.canvas );
+	this.canvas.id = _id;
+	this.resize();
+	var self = this;
+	window.addEventListener('resize', function( _event ) {
+	  	self.resize();
+	});}
+AutoCanvas.prototype.resize = function() {
+	this.canvas.width = document.body.clientWidth;
+	this.canvas.height = document.body.clientHeight;
+}
+
+/**
+ * The L-System generator
+*/	
 LSYS.Sys = function( _iter, _angle, _start ) {
 
 	this.iter = _iter;			// {int} The total number of iterations.
@@ -22,51 +44,34 @@ LSYS.Sys = function( _iter, _angle, _start ) {
 		var map = arguments[i].split('=');
 		this.rules[map[0]] = map[1];
 	}
-		
-	return {
-		
-		/**
-		 *	Run the system the specified # of times i.e. this.iter
-		 */
-		run: function() {
-			while( this.n < this.iter ) {
-				this.next();
-				this.n++;
-			}
-		},
-		
-		/**
-		 *	Apply the next rule
-		 */
-		next: function() {
-			//------------------------------------------------------------
-			//	Apply next rule
-			//------------------------------------------------------------
-			var chars = this.output.split('');
-			for ( var i in chars ) {
-				if ( chars[i] in this.rules ) {
-					chars[i] = this.rules[ chars[i] ];
-				}
-			}
-			this.output = chars.join('');
-		},
-		
-		draw: function( _renderer, _technique ) {
-			//------------------------------------------------------------
-			//	TODO: check to see if renderer is valid...
-			//------------------------------------------------------------
-			_renderer.draw( this.output, this.angle );
-		},
-		
-		//------------------------------------------------------------
-		//	Expose variables you'll need
-		//------------------------------------------------------------
-		n: this.n,
-		rules: this.rules,
-		iter: this.iter,
-		output: this.output,
-		angle: this.angle
+}
+LSYS.Sys.prototype.draw = function( _renderer, _color ) {
+	//------------------------------------------------------------
+	//	TODO: check to see if renderer is valid...
+	//------------------------------------------------------------
+	_renderer.draw( this.output, this.angle );
+	var self = this;
+	window.addEventListener( 'resize', function( _event ) {
+	  	_renderer.draw( self.output, self.angle );
+	});
+}
+LSYS.Sys.prototype.run = function() {
+	while( this.n < this.iter ) {
+		this.next();
+		this.n++;
 	}
+}
+LSYS.Sys.prototype.next = function() {
+	//------------------------------------------------------------
+	//	Apply next rule
+	//------------------------------------------------------------
+	var chars = this.output.split('');
+	for ( var i in chars ) {
+		if ( chars[i] in this.rules ) {
+			chars[i] = this.rules[ chars[i] ];
+		}
+	}
+	this.output = chars.join('');
 }
 
 
@@ -90,89 +95,86 @@ LSYS.Renderer = function( _canvasId ) {
 LSYS.TwoD = function( _canvasId ){
 	LSYS.Renderer.call( this, _canvasId );
 	this.ctx = this.canvas.getContext('2d');
+}
+LSYS.TwoD.prototype = Object.create( LSYS.Renderer.prototype );
+LSYS.TwoD.prototype.draw = function( _input, _angle ) {
+	//------------------------------------------------------------
+	//	Get the coordinates with unit distance
+	//------------------------------------------------------------
+	var angle = _angle;
+	var x = 0;
+	var y = 0;
+	var maxX = 0;
+	var maxY = 0;
+	var minX = 0;
+	var minY = 0;
+	coords = [];
+	coords.push( [x,y] );
 	
-	return {
-		
-		draw: function( _input, _angle ) {
-			
-			//------------------------------------------------------------
-			//	Get the coordinates with unit distance
-			//------------------------------------------------------------
-			var angle = _angle;
-			var x = 0;
-			var y = 0;
-			var maxX = 0;
-			var maxY = 0;
-			var minX = 0;
-			var minY = 0;
-			coords = [];
+	//------------------------------------------------------------
+	//	Loop through the LSys input string
+	//------------------------------------------------------------
+	var chars = _input.split('');
+	for ( var i in chars ) {
+		if ( chars[i] in this.constants ) {
+			switch ( this.constants[ chars[i] ] ) {
+				case 'COUNTERCLOCK':
+					angle += _angle;
+					break;
+				case 'CLOCKWISE':
+					angle -= _angle;
+					break;
+			}
+		}
+		else {
+			var vector = Math.toCart( 1, Math.toRad( angle ) );
+			x += vector[0];
+			y += vector[1];
 			coords.push( [x,y] );
 			
 			//------------------------------------------------------------
-			//	Loop through the LSys input string
+			//	Keep track of the biggest and smallest coordinates so 
+			//	we can determine the boundary box of the image
 			//------------------------------------------------------------
-			var chars = _input.split('');
-			for ( var i in chars ) {
-				if ( chars[i] in this.constants ) {
-					switch ( this.constants[ chars[i] ] ) {
-						case 'COUNTERCLOCK':
-							angle += _angle;
-							break;
-						case 'CLOCKWISE':
-							angle -= _angle;
-							break;
-					}
-				}
-				else {
-					var vector = Math.toCart( 1, Math.toRad( angle ) );
-					x += vector[0];
-					y += vector[1];
-					coords.push( [x,y] );
-					
-					//------------------------------------------------------------
-					//	Keep track of the biggest and smallest coordinates so 
-					//	we can determine the boundary box of the image
-					//------------------------------------------------------------
-					maxX = ( x > maxX ) ? x : maxX;
-					maxY = ( y > maxY ) ? y : maxY;
-					minX = ( x < minX ) ? x : minX;
-					minY = ( y < minY ) ? y : minY;
-				}
-			}
-			
-			//------------------------------------------------------------
-			//  Get the values you need to nudge the shape in place
-			//------------------------------------------------------------
-			var nudgeX = ( minX < 0 ) ? minX*-1 : 0;
-			var nudgeY = ( minY < 0 ) ? minY*-1 : 0;
-			
-			//------------------------------------------------------------
-			//  Scale the thing up to the size of the canvas
-			//------------------------------------------------------------
-			var rx = this.canvas.width / ( maxX + nudgeX );
-			var ry = this.canvas.height / ( maxY + nudgeY );
-			var scale = ( rx < ry ) ? rx : ry;
-			
-			//------------------------------------------------------------
-			//	Draw the thing to the canvas
-			//------------------------------------------------------------
-			var i = 1;
-			while ( i < coords.length ) {
-				this.ctx.beginPath();
-				this.ctx.moveTo( (coords[i-1][0]+nudgeX)*scale, (coords[i-1][1]+nudgeY)*scale );
-				this.ctx.lineTo( (coords[i][0]+nudgeX)*scale, (coords[i][1]+nudgeY)*scale );
-				this.ctx.stroke();
-				this.ctx.closePath();
-				this.ctx.stroke();
-				i++;
-			}
-		},
-		constants: this.constants,
-		ctx: this.ctx,
-		canvas: this.canvas
+			maxX = ( x > maxX ) ? x : maxX;
+			maxY = ( y > maxY ) ? y : maxY;
+			minX = ( x < minX ) ? x : minX;
+			minY = ( y < minY ) ? y : minY;
+		}
+	}
+	
+	//------------------------------------------------------------
+	//  Get the values you need to nudge the shape in place
+	//------------------------------------------------------------
+	var nudgeX = ( minX < 0 ) ? minX*-1 : 0;
+	var nudgeY = ( minY < 0 ) ? minY*-1 : 0;	
+	
+	//------------------------------------------------------------
+	//  Scale the thing up to the size of the canvas
+	//------------------------------------------------------------
+	var rx = this.canvas.width / ( maxX + nudgeX );
+	var ry = this.canvas.height / ( maxY + nudgeY );
+	var scale = ( rx < ry ) ? rx : ry;
+	
+	//------------------------------------------------------------
+	//  Center the shape into the center of the canvas
+	//------------------------------------------------------------
+	var centerX = this.canvas.width / 2;
+	
+	//------------------------------------------------------------
+	//	Draw the thing to the canvas
+	//------------------------------------------------------------
+	var i = 1;
+	while ( i < coords.length ) {
+		this.ctx.beginPath();
+		this.ctx.moveTo( (coords[i-1][0])*scale + centerX, (coords[i-1][1]+nudgeY)*scale);
+		this.ctx.lineTo( (coords[i][0])*scale + centerX, (coords[i][1]+nudgeY)*scale);
+		this.ctx.stroke();
+		this.ctx.closePath();
+		this.ctx.stroke();
+		i++;
 	}
 }
-LSYS.TwoD.prototype = Object.create( LSYS.Renderer.prototype );
 
 
 
@@ -185,6 +187,9 @@ LSYS.ThreeD = function(){
 	}
 }
 LSYS.ThreeD.prototype = Object.create( LSYS.Renderer.prototype );
+LSYS.ThreeD.draw = function() {
+	
+}
 
 
 
@@ -192,16 +197,16 @@ LSYS.ThreeD.prototype = Object.create( LSYS.Renderer.prototype );
 //  Library
 //------------------------------------------------------------
 LSYS.DragonCurve = function( _canvasId ) {
-	var sys = LSYS.Sys( 12, 90, 'FX', 'X=X+YF+', 'Y=-FX-Y' );
+	var sys = new LSYS.Sys( 12, 90, 'FX', 'X=X+YF+', 'Y=-FX-Y' );
 	sys.run();
-	var renderer = LSYS.TwoD( _canvasId );
+	var renderer = new LSYS.TwoD( _canvasId );
 	sys.draw( renderer );
 }
 
 LSYS.HexagonSierpinski = function( _canvasId ) {
-	var sys = LSYS.Sys( 8, 60, 'A', 'A=B-A-B', 'B=A+B+A' );
+	var sys = new LSYS.Sys( 8, 60, 'A', 'A=B-A-B', 'B=A+B+A' );
 	sys.run();
-	var renderer = LSYS.TwoD( _canvasId );
+	var renderer = new LSYS.TwoD( _canvasId );
 	sys.draw( renderer );
 }
 
