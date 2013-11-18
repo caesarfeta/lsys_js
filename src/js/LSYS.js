@@ -7,22 +7,40 @@ var LSYS = LSYS || { REVISION: '1' }
 /**
  * Build a full screen canvas
 */
-AutoCanvas = function( _id, _padding ) {
+AutoCanvas = function( _id, _padding, _color ) {
+	//------------------------------------------------------------
+	// Set defaults
+	//------------------------------------------------------------
 	this.padding = ( _padding != undefined ) ? _padding : 0;
+	this.color = ( _color != undefined ) ? _color : "#FFF";
+	
+	//------------------------------------------------------------
+	//	Build the canvas
+	//------------------------------------------------------------
 	this.canvas = document.createElement("canvas");
 	document.body.appendChild( this.canvas );
 	this.canvas.id = _id;
 	this.resize();
+	
+	//------------------------------------------------------------
+	//	Add the window event listener
+	//------------------------------------------------------------
 	var self = this;
 	window.addEventListener('resize', function( _event ) {
-	  	self.resize();
-	});}
+		self.resize();
+	});
+}
 AutoCanvas.prototype.resize = function() {
 	this.canvas.width = document.body.clientWidth - this.padding;
 	this.canvas.height = document.body.clientHeight - this.padding;
 	this.canvas.style.position = "fixed";
 	this.canvas.style.top = this.padding/2;
 	this.canvas.style.left = this.padding/2;
+	document.body.style.backgroundColor = this.color;
+}
+AutoCanvas.prototype.color = function( _color ) {
+	this.color = _color
+	document.body.style.backgroundColor = this.color;
 }
 
 /**
@@ -56,7 +74,7 @@ LSYS.Sys.prototype.draw = function( _renderer, _color ) {
 	_renderer.draw( this.output, this.angle );
 	var self = this;
 	window.addEventListener( 'resize', function( _event ) {
-	  	_renderer.draw( self.output, self.angle );
+		_renderer.draw( self.output, self.angle );
 	});
 }
 LSYS.Sys.prototype.run = function() {
@@ -96,9 +114,11 @@ LSYS.Renderer = function( _canvasId ) {
 //------------------------------------------------------------
 //	2D renderer class
 //------------------------------------------------------------
-LSYS.TwoD = function( _canvasId ){
+LSYS.TwoD = function( _canvasId, _options ){
 	LSYS.Renderer.call( this, _canvasId );
 	this.ctx = this.canvas.getContext('2d');
+	this.options = ( _options == undefined ) ? {} : _options;
+	this.options['delay'] = ( this.options['delay'] == undefined ) ? 0 : this.options['delay'];
 }
 LSYS.TwoD.prototype = Object.create( LSYS.Renderer.prototype );
 LSYS.TwoD.prototype.draw = function( _input, _angle ) {
@@ -148,20 +168,20 @@ LSYS.TwoD.prototype.draw = function( _input, _angle ) {
 	}
 	
 	//------------------------------------------------------------
-	//  Get the values you need to nudge the shape in place
+	//	Get the values you need to nudge the shape in place
 	//------------------------------------------------------------
 	var nudgeX = ( minX < 0 ) ? minX*-1 : 0;
 	var nudgeY = ( minY < 0 ) ? minY*-1 : 0;	
 	
 	//------------------------------------------------------------
-	//  Scale the thing up to the size of the canvas
+	//	Scale the thing up to the size of the canvas
 	//------------------------------------------------------------
 	var rx = this.canvas.width / ( maxX + nudgeX );
 	var ry = this.canvas.height / ( maxY + nudgeY );
 	var scale = ( rx < ry ) ? rx : ry;
 	
 	//------------------------------------------------------------
-	//  Center the shape into the center of the canvas
+	//	Center the shape into the center of the canvas
 	//------------------------------------------------------------
 	var centerX = this.canvas.width / 2;
 	
@@ -170,13 +190,20 @@ LSYS.TwoD.prototype.draw = function( _input, _angle ) {
 	//------------------------------------------------------------
 	var i = 1;
 	while ( i < coords.length ) {
-		this.ctx.beginPath();
-		this.ctx.moveTo( (coords[i-1][0])*scale + centerX, (coords[i-1][1]+nudgeY)*scale);
-		this.ctx.lineTo( (coords[i][0])*scale + centerX, (coords[i][1]+nudgeY)*scale);
-		this.ctx.stroke();
-		this.ctx.closePath();
-		this.ctx.stroke();
+		setTimeout( this.toCanvas(coords, i, scale, centerX, nudgeY), this.options['delay']*1000*i );
 		i++;
+	}
+	
+}
+LSYS.TwoD.prototype.toCanvas = function( _coords, _i, _scale, _centerX, _nudgeY ) {
+	var self = this;
+	return function() {
+		self.ctx.beginPath();
+		self.ctx.moveTo( (_coords[_i-1][0])*_scale + _centerX, (_coords[_i-1][1]+_nudgeY)*_scale);
+		self.ctx.lineTo( (_coords[_i][0])*_scale + _centerX, (coords[_i][1]+_nudgeY)*_scale);
+		self.ctx.stroke();
+		self.ctx.closePath();
+		self.ctx.stroke();
 	}
 }
 
@@ -198,21 +225,24 @@ LSYS.ThreeD.draw = function() {
 
 
 //------------------------------------------------------------
-//  Library
+//	Library
 //------------------------------------------------------------
 LSYS.DragonCurve = function( _canvasId ) {
+	LSYS.TwoD.call( this, _canvasId, { 'delay': .001 } );
 	var sys = new LSYS.Sys( 12, 90, 'FX', 'X=X+YF+', 'Y=-FX-Y' );
 	sys.run();
-	var renderer = new LSYS.TwoD( _canvasId );
-	sys.draw( renderer );
+	sys.draw( this );
 }
+LSYS.DragonCurve.prototype = Object.create( LSYS.TwoD.prototype );;
 
 LSYS.HexagonSierpinski = function( _canvasId ) {
-	var sys = new LSYS.Sys( 8, 60, 'A', 'A=B-A-B', 'B=A+B+A' );
+	LSYS.TwoD.call( this, _canvasId, { 'delay': .001, 'colors': ['#FF0000','#0000FF'] } );
+	var sys = new LSYS.Sys( 10, 60, 'A', 'A=B-A-B', 'B=A+B+A' );
 	sys.run();
-	var renderer = new LSYS.TwoD( _canvasId );
-	sys.draw( renderer );
+	sys.draw( this );
 }
+LSYS.HexagonSierpinski.prototype = Object.create( LSYS.TwoD.prototype );;
+
 
 
 
