@@ -1,0 +1,3 @@
+[submodule "third_party/jslib"]
+	path = third_party/jslib
+	url = https://github.com/caesarfeta/jslib
