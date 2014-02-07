@@ -58,8 +58,8 @@ LSYS.Sys.prototype.next = function() {
 
 
 
-LSYS.Renderer = function( _canvasId ) {
-	this.canvas = document.getElementById( _canvasId );
+LSYS.Renderer = function( _canvas ) {
+	this.canvas = _canvas;
 	this.constants = {
 		'+': 'COUNTERCLOCK',
 		'-': 'CLOCKWISE',
@@ -74,8 +74,8 @@ LSYS.Renderer = function( _canvasId ) {
 //------------------------------------------------------------
 //	2D renderer class
 //------------------------------------------------------------
-LSYS.TwoD = function( _canvasId, _options ){
-	LSYS.Renderer.call( this, _canvasId );
+LSYS.TwoD = function( _canvas, _options ){
+	LSYS.Renderer.call( this, _canvas );
 	this.ctx = this.canvas.getContext('2d');
 	this.options = ( _options == undefined ) ? {} : _options;
 	this.options['delay'] = ( this.options['delay'] == undefined ) ? 0 : this.options['delay'];
@@ -187,16 +187,16 @@ LSYS.ThreeD.draw = function() {
 //------------------------------------------------------------
 //	Library
 //------------------------------------------------------------
-LSYS.DragonCurve = function( _canvasId ) {
-	LSYS.TwoD.call( this, _canvasId, { 'delay': .001 } );
+LSYS.DragonCurve = function( _canvas ) {
+	LSYS.TwoD.call( this, _canvas, { 'delay': .001 } );
 	var sys = new LSYS.Sys( 12, 90, 'FX', 'X=X+YF+', 'Y=-FX-Y' );
 	sys.run();
 	sys.draw( this );
 }
 LSYS.DragonCurve.prototype = Object.create( LSYS.TwoD.prototype );;
 
-LSYS.HexagonSierpinski = function( _canvasId ) {
-	LSYS.TwoD.call( this, _canvasId, { 'delay': .001, 'colors': ['#FF0000','#0000FF'] } );
+LSYS.HexagonSierpinski = function( _canvas ) {
+	LSYS.TwoD.call( this, _canvas, { 'delay': .001, 'colors': ['#FF0000','#0000FF'] } );
 	var sys = new LSYS.Sys( 10, 60, 'A', 'A=B-A-B', 'B=A+B+A' );
 	sys.run();
 	sys.draw( this );
