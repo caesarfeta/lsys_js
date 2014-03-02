@@ -207,7 +207,7 @@ LSYS.DragonCurve.prototype = Object.create( LSYS.TwoD.prototype );;
 
 LSYS.HexagonSierpinski = function( _canvas ) {
 	LSYS.TwoD.call( this, _canvas, { 'delay': .001, 'colors': ['#FF0000','#0000FF'] } );
-	var sys = new LSYS.Sys( 10, 60, 'A', 'A=B-A-B', 'B=A+B+A' );
+	var sys = new LSYS.Sys( 8, 60, 'A', 'A=B-A-B', 'B=A+B+A' );
 	sys.run();
 	sys.draw( this );
 }
