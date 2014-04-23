@@ -29,7 +29,7 @@ LSYS.Sys = function( _iter, _angle, _start ) {
 }
 
 LSYS.Sys.prototype.draw = function( _renderer, _color ) {
-	_renderer.draw( this.output, this.angle );
+	_renderer.draw( this.output, this.angle, _renderer );
 	var self = this;
 	window.addEventListener( 'resize', function( _event ) {
 		self.windowResize( _renderer );
@@ -53,7 +53,7 @@ LSYS.Sys.prototype.reset = function( _renderer ) {
 }
 
 LSYS.Sys.prototype.run = function() {
-	while( this.n < this.iter ) {
+	while ( this.n < this.iter ) {
 		this.next();
 		this.n++;
 	}
@@ -205,20 +205,136 @@ LSYS.TwoD.prototype.toCanvas = function( _coords, _i, _scale, _centerX, _nudgeY 
 //------------------------------------------------------------
 //	3D renderer class
 //------------------------------------------------------------
-LSYS.ThreeD = function(){
-	return {
-		draw: function( _input, _angle ) {}
-	}
+LSYS.ThreeD = function( _canvas, _options ){
+	LSYS.Renderer.call( this, _canvas );
+	//------------------------------------------------------------
+	//  Set options
+	//------------------------------------------------------------
+	this.options = ( _options == undefined ) ? {} : _options;
+	this.options['delay'] = ( this.options['delay'] == undefined ) ? 0 : this.options['delay'];
+	self.i = 1;
 }
 LSYS.ThreeD.prototype = Object.create( LSYS.Renderer.prototype );
-LSYS.ThreeD.draw = function() {
-	
+LSYS.ThreeD.prototype.draw = function( _input, _angle, _renderer) {
+	var coords = [];
+	var angle = 0;
+	var x = 0;
+	var y = 0;
+	//------------------------------------------------------------
+	//	Loop through the LSys input string
+	//------------------------------------------------------------
+	var chars = _input.split('');
+	for ( var i=0; i<chars.length; i++ ) {
+		if ( chars[i] in this.constants ) {
+			switch ( this.constants[ chars[i] ] ) {
+				case 'COUNTERCLOCK':
+					angle += _angle;
+					break;
+				case 'CLOCKWISE':
+					angle -= _angle;
+					break;
+			}
+		}
+		//------------------------------------------------------------
+		//  Let's do some magic happen.
+		//------------------------------------------------------------
+		else {
+			var vector = Math.toCart( 1, Math.toRad( angle ) );
+			x += vector[0];
+			y += vector[1];
+			coords.push( [x,y] );
+		}
+	}
+	var material = new THREE.MeshBasicMaterial( { vertexColors: THREE.FaceColors, overdraw: 0.5 } );
+	var geometry = new THREE.CubeGeometry( 2, 2, 2 );
+	//------------------------------------------------------------
+	//  Draw all of the coordinates
+	//------------------------------------------------------------
+	for ( var j=0; j<coords.length; j++ ) {
+		for ( var i=0; i<geometry.faces.length; i+=2 ) {
+			var hex = Math.random() * 0xffffff;
+			geometry.faces[ i ].color.setHex( hex );
+			geometry.faces[ i + 1 ].color.setHex( hex );
+		}
+		var cube = new THREE.Mesh( geometry, material );
+		cube.position.y = coords[j][1];
+		cube.position.x = coords[j][0];
+		_renderer.scene.add( cube );
+	}
+}
+LSYS.ThreeD.prototype.init = function() {
+	var self = this;
+	//------------------------------------------------------------
+	//  Scene
+	//------------------------------------------------------------
+	this.scene = new THREE.Scene();
+	//------------------------------------------------------------
+	// Camera
+	//------------------------------------------------------------
+	this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth/window.innerHeight, 1, 1000 );
+	this.camera.position.x = 400;
+	this.camera.position.y = 400;
+	this.camera.position.z = 200;
+	this.camera.lookAt( this.scene.position );
+	//------------------------------------------------------------
+	//  Renderer
+	//------------------------------------------------------------
+	this.render = new THREE.WebGLRenderer({ antialias: false, canvas: this.canvas });
+	this.render.setSize( window.innerWidth, window.innerHeight );
+	this.render.setClearColor( 0xAAAAAA, 1.0 );
+	//------------------------------------------------------------
+	//  Controls
+	//------------------------------------------------------------
+    this.controls = new THREE.TrackballControls( this.camera );
+	this.controls.rotateSpeed = 1.0;
+	this.controls.zoomSpeed = 1.2;
+	this.controls.panSpeed = 0.8;
+	this.controls.noZoom = false;
+	this.controls.noPan = false;
+	this.controls.staticMoving = true;
+	this.controls.dynamicDampingFactor = 0.3;
+	this.controls.keys = [ 65, 83, 68 ];
+	this.controls.addEventListener( 'change', 
+		function() { 
+			self.render.render( self.scene, self.camera );
+		}
+	);
+	//------------------------------------------------------------
+	//  Widow resize
+	//------------------------------------------------------------
+	window.addEventListener( 'resize', function() {
+		this.controls.handleResize();
+		this.render.setSize( window.innerWidth, window.innerHeight );
+		this.camera.aspect = window.innerWidth / window.innerHeight;
+		this.camera.updateProjectionMatrix();
+	});
+	//------------------------------------------------------------
+	//  shim layer with setTimeout fallback
+	//------------------------------------------------------------
+	window.requestAnimFrame = ( function(){
+		return  window.requestAnimationFrame       ||
+				window.webkitRequestAnimationFrame ||
+				window.mozRequestAnimationFrame    ||
+				function( callback ){
+					window.setTimeout( callback, 1000 / 60 );
+				};
+	})();
+	self.animate();
+}
+LSYS.ThreeD.prototype.animate = function() {
+	var self = this;
+	requestAnimationFrame( function(){ self.animate() } );
+    this.render.render( this.scene, this.camera );
+	this.controls.update();
 }
 
 
 
 //------------------------------------------------------------
 //	Library
+//------------------------------------------------------------
+//------------------------------------------------------------
+//  2D
 //------------------------------------------------------------
 LSYS.DragonCurve = function( _canvas ) {
 	LSYS.TwoD.call( this, _canvas, { 'delay': .001 } );
@@ -236,7 +352,20 @@ LSYS.HexagonSierpinski = function( _canvas ) {
 }
 LSYS.HexagonSierpinski.prototype = Object.create( LSYS.TwoD.prototype );;
 
-
+//------------------------------------------------------------
+// 3D
+//------------------------------------------------------------
+//------------------------------------------------------------
+//	Library
+//------------------------------------------------------------
+LSYS.ThreeD_DragonCurve = function( _canvas ) {
+	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	this.init();
+	var sys = new LSYS.Sys( 12, 90, 'FX', 'X=X+YF+', 'Y=-FX-Y' );
+	sys.run();
+	sys.draw( this );
+}
+LSYS.ThreeD_DragonCurve.prototype = Object.create( LSYS.ThreeD.prototype );;
 
 
 //------------------------------------------------------------
@@ -249,142 +378,3 @@ Math.toRad = function( _degrees ) {
 Math.toCart = function( _radius, _angle ) {
 	return [ _radius*Math.cos( _angle ), _radius*Math.sin( _angle ) ];
 }
-
-
-
-//------------------------------------------------------------
-// Stuff to investigate.
-//------------------------------------------------------------
-// semi-Thue grammar
-// Chomsky hierarchy
-// L-systems are now commonly known as parametric L systems.
-// G = ( V, w, P )
-
-/*
-	  process: function process(cmds, draw)
-	  {
-		 this._stack = [];
-		 
-		 var angle = this._angle;
-		 var distance = this._distance;
-		 var lastX;
-		 var lastY;
-		 
-		 if (draw)
-		 {
-			var canvas = document.getElementById('canvas');
-			var ctx = canvas.getContext('2d');
-			
-			// clear the background 
-			ctx.save();
-			ctx.fillStyle = "rgb(255,255,255)";
-			ctx.fillRect(0, 0, WIDTH, HEIGHT);
-			
-			// offset as required
-			ctx.translate(this._xOffset, 0);
-			
-			// initial colour if specific colouring not used
-			ctx.strokeStyle = "rgb(0,0,0)";
-		 }
-		 
-		 // start at grid 0,0 facing north with no colour index
-		 var pos = new LSystems.Location(0.0, 0.0, 90.0, -1);
-		 
-		 // process each command in turn
-		 var yOffset = this._yOffset, maxStackDepth = this._maxStackDepth;
-		 var colourList = this._colourList, stack = this._stack;
-		 var renderLineWidths = this._renderLineWidths;
-		 var rad, width, colour, lastColour = null;
-		 var c, len = cmds.length;
-		 for (var i=0; i<len; i++)
-		 {
-			c = cmds.charAt(i);
-			
-			switch (c)
-			{
-			   case COLOUR:
-			   {
-				  // get colour index from next character
-				  pos.colour = (cmds.charAt(++i) - '0');
-				  break;
-			   }
-			   
-			   case ANTICLOCK:
-			   {
-				  pos.heading += angle;
-				  break;
-			   }
-			   
-			   case CLOCKWISE:
-			   {
-				  pos.heading -= angle;
-				  break;
-			   }
-			   
-			   case PUSH:
-			   {
-				  stack.push(new LSystems.Location(pos.x, pos.y, pos.heading, pos.colour));
-				  break;
-			   }
-			   
-			   case POP:
-			   {
-				  pos = stack.pop();
-				  break;
-			   }
-			   
-			   default:
-			   {
-				  if (!this._constants[c])
-				  {
-					 lastX = pos.x;
-					 lastY = pos.y;
-					 
-					 // move the turtle
-					 rad = pos.heading * RAD;
-					 pos.x += distance * Math.cos(rad);
-					 pos.y += distance * Math.sin(rad);
-					 
-					 if (draw)
-					 {
-						// render this element
-						if (renderLineWidths)
-						{
-						   width = (maxStackDepth - stack.length);
-						   ctx.lineWidth = width >= 1 ? width : 1;
-						}
-						colour = colourList[pos.colour];
-						if (colour && lastColour !== colour)
-						{
-						   ctx.strokeStyle = colour;
-						   lastColour = colour;
-						}
-						ctx.beginPath();
-						ctx.moveTo(lastX, HEIGHT - (lastY + yOffset));
-						ctx.lineTo(pos.x, HEIGHT - (pos.y + yOffset));
-						ctx.closePath();
-						ctx.stroke();
-					 }
-					 else
-					 {
-						// remember min/max position
-						if (pos.x < this._minx) this._minx = pos.x;
-						else if (pos.x > this._maxx) this._maxx = pos.x;
-						if (pos.y < this._miny) this._miny = pos.y;
-						else if (pos.y > this._maxy) this._maxy = pos.y;
-						if (stack.length > this._maxStackDepth) this._maxStackDepth = stack.length;
-					 }
-				  }
-				  break;
-			   }
-			}
-		 }
-		 
-		 // finalise rendering
-		 if (draw)
-		 {
-			ctx.restore();
-		 }
-	  }
-   };
-   */
