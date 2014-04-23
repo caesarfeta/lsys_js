@@ -242,11 +242,7 @@ LSYS.ThreeD.prototype.draw = function( _input, _angle, _renderer) {
 			var vector = Math.toCart( 1, Math.toRad( angle ) );
 			x += vector[0];
 			y += vector[1];
-			z = 0;
-			if ( this.func != undefined ) {
-				z = this.func( x, y );
-			}
-			coords.push( [x,y,z] );
+			coords.push( [x,y] );
 		}
 	}
 	var material = new THREE.MeshBasicMaterial( { vertexColors: THREE.FaceColors, overdraw: 0.5 } );
@@ -263,7 +259,7 @@ LSYS.ThreeD.prototype.draw = function( _input, _angle, _renderer) {
 		var cube = new THREE.Mesh( geometry, material );
 		cube.position.y = coords[j][1];
 		cube.position.x = coords[j][0];
-		cube.position.z = coords[j][2];
+		cube.position.z = ( this.func != undefined ) ? this.func( coords[j][0], coords[j][1], j ) : 0;
 		_renderer.scene.add( cube );
 	}
 }
@@ -372,9 +368,17 @@ LSYS.HexagonSierpinski.prototype = Object.create( LSYS.TwoD.prototype );;
 //------------------------------------------------------------
 LSYS.ThreeD_DragonCurve = function( _canvas ) {
 	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	/*
 	this.init( function( _a, _b ) {
+		return _a+_b;
+	});
+	this.init( function( _a, _b, ) {
 		return _a%_b;
-	}) ;
+	});
+	*/
+	this.init( function( _a, _b, _i ) {
+		return _i/50;
+	});
 	var sys = new LSYS.Sys( 12, 90, 'FX', 'X=X+YF+', 'Y=-FX-Y' );
 	sys.run();
 	sys.draw( this );
@@ -393,10 +397,13 @@ LSYS.ThreeD_HexagonSierpinski = function( _canvas ) {
 	this.init( function( _a, _b ) {
 		return _a+_b;
 	});
-	*/
-	this.init( function( _a, _b ) {
+	this.init( function( _a, _b, ) {
 		return _a%_b;
-	}) ;
+	});
+	*/
+	this.init( function( _a, _b, _i ) {
+		return _i/50;
+	});
 	var sys = new LSYS.Sys( 8, 60, 'A', 'A=B-A-B', 'B=A+B+A' );
 	sys.run();
 	sys.draw( this );
