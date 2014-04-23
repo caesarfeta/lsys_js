@@ -367,6 +367,21 @@ LSYS.ThreeD_DragonCurve = function( _canvas ) {
 }
 LSYS.ThreeD_DragonCurve.prototype = Object.create( LSYS.ThreeD.prototype );;
 
+//------------------------------------------------------------
+// 3D
+//------------------------------------------------------------
+//------------------------------------------------------------
+//	Library
+//------------------------------------------------------------
+LSYS.ThreeD_HexagonSierpinski = function( _canvas ) {
+	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	this.init();
+	var sys = new LSYS.Sys( 8, 60, 'A', 'A=B-A-B', 'B=A+B+A' );
+	sys.run();
+	sys.draw( this );
+}
+LSYS.ThreeD_HexagonSierpinski.prototype = Object.create( LSYS.ThreeD.prototype );;
+
 
 //------------------------------------------------------------
 //	Some handy math functions
