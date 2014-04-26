@@ -123,6 +123,15 @@ LSYS.TwoD.prototype.draw = function( _input, _angle, _reset ) {
 				case 'CLOCKWISE':
 					angle -= _angle;
 					break;
+				case 'PUSH':
+					var vector = Math.toCart( 1, Math.toRad( angle ) );
+					x += vector[0];
+					y += vector[1];
+					coords.push( [x,y] );
+					break;
+				case 'POP':
+					coords.pop();
+					break;
 			}
 		}
 		else {
@@ -246,7 +255,7 @@ LSYS.ThreeD.prototype.draw = function( _input, _angle, _renderer) {
 		}
 	}
 	var material = new THREE.MeshBasicMaterial( { vertexColors: THREE.FaceColors, overdraw: 0.5 } );
-	var geometry = new THREE.CubeGeometry( 2, 2, 2 );
+	var geometry = new THREE.CubeGeometry( this.cube_size, this.cube_size, this.cube_size );
 	//------------------------------------------------------------
 	//  Draw all of the coordinates
 	//------------------------------------------------------------
@@ -259,7 +268,7 @@ LSYS.ThreeD.prototype.draw = function( _input, _angle, _renderer) {
 		var cube = new THREE.Mesh( geometry, material );
 		cube.position.y = coords[j][1];
 		cube.position.x = coords[j][0];
-		cube.position.z = ( this.func != undefined ) ? this.func( coords[j][0], coords[j][1], j ) : 0;
+		cube.position.z = ( this.func != undefined ) ? this.func( coords[j][0], coords[j][1], j, coords.length ) : 0;
 		_renderer.scene.add( cube );
 	}
 }
@@ -269,9 +278,13 @@ LSYS.ThreeD.prototype.draw = function( _input, _angle, _renderer) {
  *
  * _func { function }
  */
-LSYS.ThreeD.prototype.init = function( _func ) {
+LSYS.ThreeD.prototype.init = function( _func, _cube_size ) {
 	var self = this;
+	//------------------------------------------------------------
+	//  Stash arguments for use later in draw()
+	//------------------------------------------------------------
 	this.func = _func;
+	this.cube_size = ( _cube_size == undefined ) ? 1 : _cube_size;
 	//------------------------------------------------------------
 	//  Scene
 	//------------------------------------------------------------
@@ -279,17 +292,19 @@ LSYS.ThreeD.prototype.init = function( _func ) {
 	//------------------------------------------------------------
 	// Camera
 	//------------------------------------------------------------
-	this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth/window.innerHeight, 1, 1000 );
+	this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth/window.innerHeight*.5, 1, 1000 );
+	//this.camera = new THREE.OrthographicCamera( window.innerWidth/-2, window.innerWidth/2, window.innerHeight/2, window.innerHeight/-2, 1, 1000 );
+	//var camera = new THREE.OrthographicCamera( width / - 2, width / 2, height / 2, height / - 2, near, far );
 	this.camera.position.x = 400;
 	this.camera.position.y = 400;
-	this.camera.position.z = 200;
+	this.camera.position.z = 100;
 	this.camera.lookAt( this.scene.position );
 	//------------------------------------------------------------
 	//  Renderer
 	//------------------------------------------------------------
 	this.render = new THREE.WebGLRenderer({ antialias: false, canvas: this.canvas });
-	this.render.setSize( window.innerWidth, window.innerHeight );
-	this.render.setClearColor( 0xAAAAAA, 1.0 );
+	this.render.setSize( this.canvas.width, this.canvas.height );
+	this.render.setClearColor( 0x222222, 1.0 );
 	//------------------------------------------------------------
 	//  Controls
 	//------------------------------------------------------------
@@ -375,9 +390,12 @@ LSYS.ThreeD_DragonCurve = function( _canvas ) {
 	this.init( function( _a, _b, ) {
 		return _a%_b;
 	});
-	*/
 	this.init( function( _a, _b, _i ) {
 		return _i/50;
+	});
+	*/
+	this.init( function( _a, _b, _i ) {
+		return _i*_b/5000;
 	});
 	var sys = new LSYS.Sys( 12, 90, 'FX', 'X=X+YF+', 'Y=-FX-Y' );
 	sys.run();
@@ -385,12 +403,6 @@ LSYS.ThreeD_DragonCurve = function( _canvas ) {
 }
 LSYS.ThreeD_DragonCurve.prototype = Object.create( LSYS.ThreeD.prototype );;
 
-//------------------------------------------------------------
-// 3D
-//------------------------------------------------------------
-//------------------------------------------------------------
-//	Library
-//------------------------------------------------------------
 LSYS.ThreeD_HexagonSierpinski = function( _canvas ) {
 	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
 	/*
@@ -400,9 +412,12 @@ LSYS.ThreeD_HexagonSierpinski = function( _canvas ) {
 	this.init( function( _a, _b, ) {
 		return _a%_b;
 	});
-	*/
 	this.init( function( _a, _b, _i ) {
 		return _i/50;
+	});
+	*/
+	this.init( function( _a, _b, _i ) {
+		return _i*_b/2000;
 	});
 	var sys = new LSYS.Sys( 8, 60, 'A', 'A=B-A-B', 'B=A+B+A' );
 	sys.run();
@@ -410,6 +425,95 @@ LSYS.ThreeD_HexagonSierpinski = function( _canvas ) {
 }
 LSYS.ThreeD_HexagonSierpinski.prototype = Object.create( LSYS.ThreeD.prototype );;
 
+/* COPY ME--- 
+LSYS.ThreeD_U = function( _canvas ) {
+	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	this.init( function( _x, _y, _i, _total ) {
+		return 10*Math.sin( (_i%_total) * Math.toRad( 15 ) );
+	});
+	var sys = new LSYS.Sys( 8, 60, 'A', 'A=B+A+B', 'B=A-BB' );
+	sys.run();
+	sys.draw( this );
+}
+LSYS.ThreeD_U.prototype = Object.create( LSYS.ThreeD.prototype );
+*/
+
+LSYS.ThreeD_Shrimp = function( _canvas ) {
+	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	this.init( function( _x, _y, _i, _total ) {
+		return 10*Math.sin( (_i%_total) * Math.toRad( 15 ) );
+	});
+	var sys = new LSYS.Sys( 8, 60, 'A', 'A=B+A+B', 'B=A-BB' );
+	sys.run();
+	sys.draw( this );
+}
+LSYS.ThreeD_Shrimp.prototype = Object.create( LSYS.ThreeD.prototype );
+
+LSYS.ThreeD_StretchCoil = function( _canvas ) {
+	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	this.init( function( _x, _y, _i, _total ) {
+		return _i*_y/200;
+	});
+	var sys = new LSYS.Sys( 6, 4, 'ABA', 'A=BB', 'B=A-BB' );
+	sys.run();
+	sys.draw( this );
+}
+LSYS.ThreeD_StretchCoil.prototype = Object.create( LSYS.ThreeD.prototype );
+
+LSYS.ThreeD_StretchCoil = function( _canvas ) {
+	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	this.init( function( _x, _y, _i, _total ) {
+		return _i*_y/200;
+	});
+	var sys = new LSYS.Sys( 6, 4, 'ABA', 'A=BB', 'B=A-BB' );
+	sys.run();
+	sys.draw( this );
+}
+LSYS.ThreeD_StretchCoil.prototype = Object.create( LSYS.ThreeD.prototype );
+ 
+LSYS.ThreeD_Squiggle = function( _canvas ) {
+	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	this.init( function( _x, _y, _i, _total ) {
+		return _i*_x/20000;
+	});
+	var sys = new LSYS.Sys( 8, 90, 'A', 'A=B+A-B', 'B=A-B-BB' );
+	sys.run();
+	sys.draw( this );
+}
+LSYS.ThreeD_Squiggle.prototype = Object.create( LSYS.ThreeD.prototype );
+
+LSYS.ThreeD_Chip = function( _canvas ) {
+	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	this.init( function( _x, _y, _i, _total ) {
+		return _i/100;
+	});
+	var sys = new LSYS.Sys( 8, 90, 'BA', 'A=+BAB+', 'B=--ABA--' );
+	sys.run();
+	sys.draw( this );
+}
+LSYS.ThreeD_Chip.prototype = Object.create( LSYS.ThreeD.prototype );
+
+LSYS.ThreeD_ChipTear = function( _canvas ) {
+	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	this.init( function( _x, _y, _i, _total ) {
+		return _y+900/_x;
+	});
+	var sys = new LSYS.Sys( 8, 90, 'BA', 'A=+BAB+', 'B=--ABA--' );
+	sys.run();
+	sys.draw( this );
+}
+LSYS.ThreeD_ChipTear.prototype = Object.create( LSYS.ThreeD.prototype );
+
+LSYS.ThreeD_U = function( _canvas ) {
+	LSYS.ThreeD.call( this, _canvas, { 'delay': .001 } );
+	this.init( function( _x, _y, _i, _total ) {
+		return _x/2;
+	});
+	var sys = new LSYS.Sys( 4, 270, 'A', 'A=-BAA-A-AAA--AB' );
+	sys.run();
+	sys.draw( this );
+}
+LSYS.ThreeD_U.prototype = Object.create( LSYS.ThreeD.prototype );
 
 //------------------------------------------------------------
 //	Some handy math functions
