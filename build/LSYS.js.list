@@ -1,0 +1,8 @@
+third_party/three.js/build/three.js
+third_party/three.js/examples/js/controls/TrackballControls.js
+third_party/jslib/src/js/MathExt.js
+third_party/jslib/src/js/AutoCanvas.js
+src/js/LSYS.Sys.js
+src/js/LSYS.TwoD.js
+src/js/LSYS.ThreeD.js
+src/js/LSYS.Lib.js

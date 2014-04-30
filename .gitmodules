@@ -4,3 +4,6 @@
 [submodule "third_party/three.js"]
 	path = third_party/three.js
 	url = https://github.com/mrdoob/three.js
+[submodule "squish"]
+	path = squish
+	url = https://github.com/caesarfeta/squish
