@@ -43,20 +43,24 @@ LSYS.ThreeD.prototype.draw = function( _input, _angle, _renderer) {
 	}
 	var material = new THREE.MeshBasicMaterial( { vertexColors: THREE.FaceColors, overdraw: 0.5 } );
 	var geometry = new THREE.CubeGeometry( this.cube_size, this.cube_size, this.cube_size );
+	var mergedCubes = new THREE.Geometry();
+	//------------------------------------------------------------
+	//
+	//------------------------------------------------------------
+	for ( var i=0; i<geometry.faces.length; i+=2 ) {
+		geometry.faces[ i ].color.setHex( this.palette.at(i).hex('0x') );
+		geometry.faces[ i + 1 ].color.setHex( this.palette.at(i).hex('0x') );
+	}
 	//------------------------------------------------------------
 	//  Draw all of the coordinates
 	//------------------------------------------------------------
 	for ( var j=0; j<coords.length; j++ ) {
-		for ( var i=0; i<geometry.faces.length; i+=2 ) {
-			var hex = Math.random() * 0xffffff;
-			geometry.faces[ i ].color.setHex( hex );
-			geometry.faces[ i + 1 ].color.setHex( hex );
-		}
 		var cube = new THREE.Mesh( geometry, material );
 		cube.position.y = coords[j][1];
 		cube.position.x = coords[j][0];
 		cube.position.z = ( this.func != undefined ) ? this.func( coords[j][0], coords[j][1], j, coords.length ) : 0;
 		_renderer.scene.add( cube );
+		THREE.GeometryUtils.merge( mergedCubes, cube );
 	}
 }
 
@@ -76,6 +80,10 @@ LSYS.ThreeD.prototype.init = function( _func, _cube_size ) {
 	//  Scene
 	//------------------------------------------------------------
 	this.scene = new THREE.Scene();
+	//------------------------------------------------------------
+	//  Palette
+	//------------------------------------------------------------
+	this.palette = new Palette( 'candy' );
 	//------------------------------------------------------------
 	// Camera
 	//------------------------------------------------------------

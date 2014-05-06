@@ -7,16 +7,24 @@
 	</body>
 	<!-- Load Javascript -->
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-	<script type="text/javascript" src="../../src/js/LSYS.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+	<script type="text/javascript" src="../../src/js/LSYS.Sys.js"></script>
+	<script type="text/javascript" src="../../src/js/LSYS.TwoD.js"></script>
+	<script type="text/javascript" src="../../src/js/LSYS.ThreeD.js"></script>
+	<script type="text/javascript" src="../../src/js/LSYS.Lib.js"></script>
+	<script type="text/javascript" src="../../third_party/jslib/src/js/Palette.js"></script>
+	<script type="text/javascript" src="../../third_party/jslib/src/js/Culuh.js"></script>
+	<script type="text/javascript" src="../../third_party/jslib/src/js/Sorted.js"></script>
 	<script type="text/javascript" src="../../third_party/jslib/src/js/AutoCanvas.js"></script>
+	<script type="text/javascript" src="../../third_party/jslib/src/js/MathExt.js"></script>
 	<script type="text/javascript" src="../../third_party/three.js/build/three.js"></script>
 	<script type="text/javascript" src="../../third_party/three.js/examples/js/controls/TrackballControls.js"></script>
 	
 	<script type="text/javascript">
 		auto = new AutoCanvas( 'canvas', 0, '#AAA' );
-		//var dragon = new LSYS.ThreeD_DragonCurve( auto.canvas );
+		var dragon = new LSYS.ThreeD_DragonCurve( auto.canvas );
 		//var hexa = new LSYS.ThreeD_HexagonSierpinski( auto.canvas );
-		var shrimp = new LSYS.ThreeD_Shrimp( auto.canvas );
+		// var shrimp = new LSYS.ThreeD_Shrimp( auto.canvas );
 		//var u = new LSYS.ThreeD_U( auto.canvas );
 	</script>
 <html>
